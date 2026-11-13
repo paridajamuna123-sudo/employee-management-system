@@ -1,0 +1,140 @@
+<div class="layout-container" [class.collapsed]="isSidebarCollapsed" [class.mobile-open]="isMobileOpen">
+  <!-- Mobile Backdrop -->
+  <div class="mobile-backdrop" (click)="closeMobileSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Brand -->
+    <div class="sidebar-header">
+      <div class="brand">
+        <i class="bi bi-building-check brand-icon"></i>
+        <span class="brand-text">EMS Portal</span>
+      </div>
+      <button class="btn btn-sm btn-icon toggle-btn d-none d-md-flex" (click)="toggleSidebar()">
+        <i class="bi" [class.bi-chevron-left]="!isSidebarCollapsed" [class.bi-chevron-right]="isSidebarCollapsed"></i>
+      </button>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="sidebar-nav">
+      <ul class="nav-list">
+        <!-- Dashboard -->
+        <li class="nav-item">
+          <a routerLink="/dashboard" routerLinkActive="active" class="nav-link" (click)="closeMobileSidebar()">
+            <i class="bi bi-speedometer2"></i>
+            <span class="link-text">Dashboard</span>
+          </a>
+        </li>
+
+        <!-- Employees (RBAC Protected) -->
+        <li class="nav-item" *ngIf="canAccessEmployees()">
+          <a routerLink="/employees" routerLinkActive="active" class="nav-link" (click)="closeMobileSidebar()">
+            <i class="bi bi-people-fill"></i>
+            <span class="link-text">Employees</span>
+          </a>
+        </li>
+
+        <!-- Organization: Departments & Designations -->
+        <li class="nav-item" *ngIf="canAccessOrg()">
+          <a routerLink="/departments" routerLinkActive="active" class="nav-link" (click)="closeMobileSidebar()">
+            <i class="bi bi-diagram-3-fill"></i>
+            <span class="link-text">Departments</span>
+          </a>
+        </li>
+
+        <li class="nav-item" *ngIf="canAccessOrg()">
+          <a routerLink="/designations" routerLinkActive="active" class="nav-link" (click)="closeMobileSidebar()">
+            <i class="bi bi-briefcase-fill"></i>
+            <span class="link-text">Designations</span>
+          </a>
+        </li>
+
+        <!-- Future Modules Clearly Indicated as Disabled -->
+
+        <li class="nav-item disabled-nav" title="Available in Sprint 3">
+          <a class="nav-link disabled-link">
+            <i class="bi bi-clock-history"></i>
+            <span class="link-text">Attendance</span>
+            <span class="badge bg-secondary-subtle text-secondary ms-auto badge-sprint">Sprint 3</span>
+          </a>
+        </li>
+
+        <li class="nav-item disabled-nav" title="Available in Sprint 3">
+          <a class="nav-link disabled-link">
+            <i class="bi bi-calendar-event"></i>
+            <span class="link-text">Leave Mgmt</span>
+            <span class="badge bg-secondary-subtle text-secondary ms-auto badge-sprint">Sprint 3</span>
+          </a>
+        </li>
+
+        <li class="nav-item disabled-nav" title="Available in Sprint 4">
+          <a class="nav-link disabled-link">
+            <i class="bi bi-cash-stack"></i>
+            <span class="link-text">Payroll</span>
+            <span class="badge bg-secondary-subtle text-secondary ms-auto badge-sprint">Sprint 4</span>
+          </a>
+        </li>
+
+        <!-- Settings -->
+        <li class="nav-item">
+          <a routerLink="/settings" routerLinkActive="active" class="nav-link" (click)="closeMobileSidebar()">
+            <i class="bi bi-gear-fill"></i>
+            <span class="link-text">Settings</span>
+          </a>
+        </li>
+      </ul>
+
+      <!-- Logout in Sidebar -->
+      <div class="sidebar-footer">
+        <a href="javascript:void(0)" class="nav-link text-danger" (click)="logout()">
+          <i class="bi bi-box-arrow-right"></i>
+          <span class="link-text">Sign Out</span>
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="main-wrapper">
+    <!-- Top Navbar -->
+    <header class="topbar">
+      <div class="d-flex align-items-center">
+        <button class="btn btn-icon d-md-none me-2" (click)="toggleMobileSidebar()">
+          <i class="bi bi-list fs-4"></i>
+        </button>
+        <span class="fw-semibold text-secondary d-none d-sm-inline">
+          Employee Management System
+        </span>
+      </div>
+
+      <div class="topbar-right d-flex align-items-center gap-3">
+        <!-- Notification Placeholder -->
+        <button class="btn btn-icon position-relative text-secondary" title="Notifications">
+          <i class="bi bi-bell"></i>
+          <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
+        </button>
+
+        <!-- User Profile Pill -->
+        <div class="user-pill d-flex align-items-center">
+          <div class="avatar">
+            {{ currentUser?.fullName ? currentUser?.fullName?.charAt(0) : 'A' }}
+          </div>
+          <div class="user-info d-none d-sm-block ms-2 text-start">
+            <div class="fw-bold small lh-1">{{ currentUser?.fullName || 'User' }}</div>
+            <div class="text-muted smaller lh-1 mt-1">
+              <span class="badge bg-primary text-white" *ngFor="let role of currentUser?.roles">{{ role }}</span>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-icon ms-2 text-danger" (click)="logout()" title="Logout">
+            <i class="bi bi-power"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content View -->
+    <main class="page-content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

@@ -1,0 +1,210 @@
+<div class="profile-container" *ngIf="employee">
+  <!-- Alerts -->
+  <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i> {{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+  <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <!-- Header Banner Card -->
+  <div class="card shadow-sm mb-4 border-0 profile-header-card">
+    <div class="card-body p-4">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-4">
+          <!-- Profile Picture -->
+          <div class="profile-avatar">
+            <img *ngIf="employee.profileImageUrl" [src]="employee.profileImageUrl" alt="Avatar" class="avatar-img" />
+            <div *ngIf="!employee.profileImageUrl" class="avatar-fallback">
+              {{ employee.firstName.charAt(0) }}{{ employee.lastName.charAt(0) }}
+            </div>
+          </div>
+
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <h3 class="fw-bold text-dark mb-0">{{ employee.firstName }} {{ employee.lastName }}</h3>
+              <span class="badge bg-dark">{{ employee.employeeCode }}</span>
+              <span class="badge" [class.bg-success]="employee.isActive" [class.bg-danger]="!employee.isActive">
+                {{ employee.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+            <p class="text-muted mb-0 small">
+              <i class="bi bi-diagram-3 me-1"></i> {{ employee.departmentName || 'No Department' }} &bull;
+              <i class="bi bi-award me-1"></i> {{ employee.designationName || 'No Designation' }} &bull;
+              <i class="bi bi-clock-history me-1"></i> {{ employee.employmentType }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary btn-sm" (click)="goBack()">
+            <i class="bi bi-arrow-left me-1"></i> Directory
+          </button>
+          <a [routerLink]="['/employees/edit', employee.id]" class="btn btn-outline-primary btn-sm" *ngIf="authService.hasAnyRole(['Admin', 'HR'])">
+            <i class="bi bi-pencil me-1"></i> Edit
+          </a>
+          <button
+            class="btn btn-sm"
+            [class.btn-outline-danger]="employee.isActive"
+            [class.btn-outline-success]="!employee.isActive"
+            (click)="toggleStatus()"
+            *ngIf="authService.hasAnyRole(['Admin', 'HR'])"
+          >
+            <i class="bi" [class.bi-person-x]="employee.isActive" [class.bi-person-check]="!employee.isActive"></i>
+            {{ employee.isActive ? 'Deactivate' : 'Activate' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Content Tabs -->
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-white border-bottom p-0">
+      <ul class="nav nav-tabs border-0 px-3 pt-2">
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'overview'" (click)="activeTab = 'overview'" role="button">
+            <i class="bi bi-person me-1"></i> Personal Overview
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" [class.active]="activeTab === 'employment'" (click)="activeTab = 'employment'" role="button">
+            <i class="bi bi-briefcase me-1"></i> Employment & Compensation
+          </a>
+        </li>
+        <li class="nav-item" *ngIf="authService.hasAnyRole(['Admin', 'HR'])">
+          <a class="nav-link" [class.active]="activeTab === 'account'" (click)="activeTab = 'account'" role="button">
+            <i class="bi bi-shield-lock me-1"></i> Account Linking
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card-body p-4">
+      <!-- TAB 1: Personal Overview -->
+      <div *ngIf="activeTab === 'overview'">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded">
+              <label class="text-muted smaller fw-bold text-uppercase d-block mb-1">Corporate Email</label>
+              <div class="fw-semibold text-dark">{{ employee.email }}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded">
+              <label class="text-muted smaller fw-bold text-uppercase d-block mb-1">Direct Phone</label>
+              <div class="fw-semibold text-dark">{{ employee.phoneNumber || 'Not provided' }}</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 bg-light rounded">
+              <label class="text-muted smaller fw-bold text-uppercase d-block mb-1">Date of Birth</label>
+              <div class="fw-semibold text-dark">{{ employee.dateOfBirth ? (employee.dateOfBirth | date:'mediumDate') : 'Not provided' }}</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 bg-light rounded">
+              <label class="text-muted smaller fw-bold text-uppercase d-block mb-1">Gender</label>
+              <div class="fw-semibold text-dark">{{ employee.gender || 'Not specified' }}</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 bg-light rounded">
+              <label class="text-muted smaller fw-bold text-uppercase d-block mb-1">Record Created</label>
+              <div class="fw-semibold text-dark">{{ employee.createdAt | date:'mediumDate' }}</div>
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="p-3 bg-light rounded">
+              <label class="text-muted smaller fw-bold text-uppercase d-block mb-1">Residential Address</label>
+              <div class="fw-semibold text-dark">{{ employee.address || 'No residential address on file' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Employment & Compensation -->
+      <div *ngIf="activeTab === 'employment'">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded">
+              <label class="text-muted smaller fw-bold text-uppercase d-block mb-1">Assigned Department</label>
+              <h5 class="fw-bold text-primary mb-0">{{ employee.departmentName || 'General' }}</h5>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="p-3 bg-light rounded">
+              <label class="text-muted smaller fw-bold text-uppercase d-block mb-1">Job Designation</label>
+              <h5 class="fw-bold text-dark mb-0">{{ employee.designationName || 'Standard' }}</h5>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 bg-light rounded">
+              <label class="text-muted smaller fw-bold text-uppercase d-block mb-1">Date of Joining</label>
+              <div class="fw-bold text-dark">{{ employee.dateOfJoining | date:'longDate' }}</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 bg-light rounded">
+              <label class="text-muted smaller fw-bold text-uppercase d-block mb-1">Employment Category</label>
+              <span class="badge bg-secondary">{{ employee.employmentType }}</span>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 bg-light rounded">
+              <label class="text-muted smaller fw-bold text-uppercase d-block mb-1">Base Salary</label>
+              <h5 class="fw-bold text-success mb-0">{{ employee.salary | currency }}</h5>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Account Linking (Identity User) -->
+      <div *ngIf="activeTab === 'account'">
+        <div class="alert alert-info d-flex align-items-center mb-4">
+          <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+          <div>
+            Linking an Identity user account allows this employee to log in to the portal and view their personalized self-service dashboard.
+          </div>
+        </div>
+
+        <div *ngIf="employee.isAccountLinked" class="card border-success p-3 bg-success-subtle mb-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="badge bg-success mb-1">Linked Account</span>
+              <div class="fw-bold">{{ employee.linkedUserEmail }}</div>
+              <small class="text-muted">User ID: {{ employee.linkedUserId }}</small>
+            </div>
+            <i class="bi bi-check-circle-fill text-success fs-2"></i>
+          </div>
+        </div>
+
+        <div *ngIf="!employee.isAccountLinked" class="card p-3 border-light mb-3">
+          <h6 class="fw-bold mb-2">Link with Existing Identity User</h6>
+          <div class="row g-2 align-items-center">
+            <div class="col-md-8">
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Enter Identity User ID (GUID)"
+                [(ngModel)]="linkUserIdInput"
+              />
+            </div>
+            <div class="col-md-4">
+              <button class="btn btn-primary w-100" (click)="linkAccount()" [disabled]="isLinking || !linkUserIdInput.trim()">
+                <span *ngIf="isLinking" class="spinner-border spinner-border-sm me-1"></span>
+                <span>{{ isLinking ? 'Linking...' : 'Link Account' }}</span>
+              </button>
+            </div>
+          </div>
+          <small class="text-muted mt-2 d-block">
+            Example: Provide the GUID from <code>AspNetUsers</code> table to map this employee record.
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

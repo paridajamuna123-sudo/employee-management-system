@@ -1,0 +1,68 @@
+.dashboard-container {
+  animation: fadeIn 0.25s ease-in;
+}
+
+.metric-card {
+  border-radius: 12px;
+  padding: 1.4rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06) !important;
+  }
+}
+
+.metric-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.bg-primary-subtle { background-color: #dbeafe; }
+.bg-success-subtle { background-color: #dcfce7; }
+.bg-danger-subtle  { background-color: #fee2e2; }
+.bg-info-subtle    { background-color: #e0f2fe; }
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.activity-timeline {
+  .activity-item {
+    display: flex;
+    gap: 0.85rem;
+    position: relative;
+    padding-bottom: 1rem;
+
+    &:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 14px;
+      bottom: 0;
+      width: 2px;
+      background: #e2e8f0;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}

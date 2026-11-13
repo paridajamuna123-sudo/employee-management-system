@@ -1,0 +1,88 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <!-- Brand / Header -->
+    <div class="text-center mb-4">
+      <div class="brand-icon mb-2">
+        <i class="bi bi-person-workspace"></i>
+      </div>
+      <h3 class="fw-bold mb-1 text-dark">EMS Enterprise Portal</h3>
+      <p class="text-muted small">Sign in to manage employee operations and organizational workflow</p>
+    </div>
+
+    <!-- Error Alert -->
+    <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <div class="small flex-grow-1">{{ errorMessage }}</div>
+      <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+    </div>
+
+    <!-- Login Form -->
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <!-- Email -->
+      <div class="mb-3">
+        <label class="form-label small fw-semibold text-secondary">Work Email Address</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope text-muted"></i></span>
+          <input
+            type="email"
+            class="form-control border-start-0"
+            formControlName="email"
+            placeholder="admin@ems.com"
+            [class.is-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+          />
+        </div>
+        <div *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched" class="text-danger small mt-1">
+          A valid work email is required.
+        </div>
+      </div>
+
+      <!-- Password -->
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <label class="form-label small fw-semibold text-secondary mb-0">Password</label>
+          <span class="text-muted small text-decoration-none" title="Password reset will be available in future sprints">
+            Forgot password?
+          </span>
+        </div>
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-key text-muted"></i></span>
+          <input
+            [type]="showPassword ? 'text' : 'password'"
+            class="form-control border-start-0 border-end-0"
+            formControlName="password"
+            placeholder="••••••••"
+            [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-light text-muted border border-start-0"
+            (click)="togglePasswordVisibility()"
+            tabindex="-1"
+          >
+            <i class="bi" [class.bi-eye]="!showPassword" [class.bi-eye-slash]="showPassword"></i>
+          </button>
+        </div>
+        <div *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched" class="text-danger small mt-1">
+          Password must be at least 6 characters.
+        </div>
+      </div>
+
+      <!-- Remember Me -->
+      <div class="mb-4 form-check">
+        <input type="checkbox" class="form-check-input" id="rememberMe" formControlName="rememberMe" />
+        <label class="form-check-label small text-secondary" for="rememberMe">Remember my session</label>
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold submit-btn" [disabled]="isLoading">
+        <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+        <span>{{ isLoading ? 'Verifying Credentials...' : 'Sign In' }}</span>
+      </button>
+    </form>
+
+    <!-- Seeded Account Reference -->
+    <div class="mt-4 pt-3 border-top text-center text-muted small">
+      Admin account: <span class="badge bg-light text-dark border">admin@ems.com</span> / <span class="badge bg-light text-dark border">Admin@123Password!</span>
+    </div>
+  </div>
+</div>
