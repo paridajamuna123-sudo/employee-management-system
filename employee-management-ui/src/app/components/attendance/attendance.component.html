@@ -1,0 +1,307 @@
+<div class="container-fluid p-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-dark mb-1">
+        <i class="bi bi-clock-history text-primary me-2"></i>Attendance Management
+      </h3>
+      <p class="text-secondary small mb-0">Record daily punches, view timesheets, and handle correction requests.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-success" (click)="exportExcel()" *ngIf="canManageAttendance()">
+        <i class="bi bi-file-earmark-excel me-1"></i> Export Register
+      </button>
+      <button class="btn btn-outline-primary" (click)="openCorrectionModal()">
+        <i class="bi bi-pencil-square me-1"></i> Request Correction
+      </button>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="alert alert-success alert-dismissible fade show" *ngIf="successMessage">
+    <i class="bi bi-check-circle-fill me-2"></i>{{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+  <div class="alert alert-danger alert-dismissible fade show" *ngIf="errorMessage">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <!-- Today Punch Hero Card -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4 punch-card bg-gradient-primary text-white">
+    <div class="card-body p-4">
+      <div class="row align-items-center">
+        <div class="col-md-7">
+          <span class="badge bg-white text-primary mb-2 px-3 py-2 fw-semibold">Live Punch Station</span>
+          <h2 class="display-6 fw-bold mb-1">{{ currentTimeString }}</h2>
+          <p class="mb-3 text-white-50">Standard Shift: 09:30 AM – 06:30 PM (Grace limit: 09:30 AM)</p>
+
+          <div class="d-flex flex-wrap gap-3">
+            <button class="btn btn-light text-primary fw-bold px-4 py-2 rounded-pill shadow-sm"
+                    (click)="clockIn()"
+                    [disabled]="todayStatus?.hasCheckedIn || isClocking">
+              <i class="bi bi-box-arrow-in-right me-1"></i>
+              {{ todayStatus?.hasCheckedIn ? 'Clocked In' : 'Clock In Now' }}
+            </button>
+
+            <button class="btn btn-outline-light fw-bold px-4 py-2 rounded-pill shadow-sm"
+                    (click)="clockOut()"
+                    [disabled]="!todayStatus?.hasCheckedIn || todayStatus?.hasCheckedOut || isClocking">
+              <i class="bi bi-box-arrow-left me-1"></i>
+              {{ todayStatus?.hasCheckedOut ? 'Clocked Out' : 'Clock Out Now' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="col-md-5 mt-4 mt-md-0 border-start border-white-50 ps-md-4">
+          <div class="punch-status-box">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-white-50">Today's Status:</span>
+              <span class="badge" [ngClass]="{
+                'bg-success': todayStatus?.status === 'Present',
+                'bg-warning text-dark': todayStatus?.status === 'Late' || todayStatus?.status === 'HalfDay',
+                'bg-danger': todayStatus?.status === 'Absent' || !todayStatus?.hasCheckedIn
+              }">{{ todayStatus?.status || 'Not Clocked In' }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-white-50">Check In:</span>
+              <span class="fw-semibold">{{ todayStatus?.clockInTime ? (todayStatus?.clockInTime | date:'shortTime') : '--:--' }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+              <span class="text-white-50">Check Out:</span>
+              <span class="fw-semibold">{{ todayStatus?.clockOutTime ? (todayStatus?.clockOutTime | date:'shortTime') : '--:--' }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-white-50">Effective Hours:</span>
+              <span class="fw-bold">{{ todayStatus?.workingHours || 0 }} hrs</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <ul class="nav nav-pills mb-4">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'my-attendance'" (click)="activeTab = 'my-attendance'">
+        <i class="bi bi-person-badge me-1"></i> My Attendance
+      </a>
+    </li>
+    <li class="nav-item" *ngIf="canManageAttendance()">
+      <a class="nav-link" [class.active]="activeTab === 'register'" (click)="activeTab = 'register'">
+        <i class="bi bi-table me-1"></i> Attendance Register (Team/Org)
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'corrections'" (click)="activeTab = 'corrections'; loadCorrections()">
+        <i class="bi bi-pencil-square me-1"></i> Correction Requests
+      </a>
+    </li>
+  </ul>
+
+  <!-- Tab 1: My Attendance History -->
+  <div *ngIf="activeTab === 'my-attendance'" class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+      <h5 class="fw-bold mb-3">Recent Punch History</h5>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Clock In</th>
+              <th>Clock Out</th>
+              <th>Working Hours</th>
+              <th>Overtime</th>
+              <th>Status</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rec of myRecords">
+              <td class="fw-semibold">{{ rec.attendanceDate | date:'mediumDate' }}</td>
+              <td>{{ rec.clockInTime ? (rec.clockInTime | date:'shortTime') : '--' }}</td>
+              <td>{{ rec.clockOutTime ? (rec.clockOutTime | date:'shortTime') : '--' }}</td>
+              <td>{{ rec.workingHours }} hrs</td>
+              <td>{{ rec.overtimeHours > 0 ? (rec.overtimeHours + ' hrs') : '-' }}</td>
+              <td>
+                <span class="badge" [ngClass]="{
+                  'bg-success': rec.status === 'Present',
+                  'bg-warning text-dark': rec.status === 'Late' || rec.status === 'HalfDay',
+                  'bg-danger': rec.status === 'Absent',
+                  'bg-info': rec.status === 'OnLeave'
+                }">{{ rec.status }}</span>
+              </td>
+              <td class="small text-muted">{{ rec.remarks || '--' }}</td>
+            </tr>
+            <tr *ngIf="myRecords.length === 0">
+              <td colspan="7" class="text-center py-4 text-muted">No attendance logs found yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Attendance Register (Org/Manager) -->
+  <div *ngIf="activeTab === 'register'" class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+      <!-- Filter Bar -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-3">
+          <label class="form-label small text-muted">From Date</label>
+          <input type="date" class="form-control" [(ngModel)]="regFilter.fromDate" (change)="applyRegisterFilter()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">To Date</label>
+          <input type="date" class="form-control" [(ngModel)]="regFilter.toDate" (change)="applyRegisterFilter()">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Department</label>
+          <select class="form-select" [(ngModel)]="regFilter.departmentId" (change)="applyRegisterFilter()">
+            <option value="">All Departments</option>
+            <option *ngFor="let d of departments" [value]="d.id">{{ d.departmentName }}</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small text-muted">Status</label>
+          <select class="form-select" [(ngModel)]="regFilter.status" (change)="applyRegisterFilter()">
+            <option value="">All Statuses</option>
+            <option value="Present">Present</option>
+            <option value="Late">Late</option>
+            <option value="HalfDay">Half Day</option>
+            <option value="Absent">Absent</option>
+            <option value="OnLeave">On Leave</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Date</th>
+              <th>Clock In</th>
+              <th>Clock Out</th>
+              <th>Hours</th>
+              <th>Status</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rec of registerRecords">
+              <td>
+                <div class="fw-bold">{{ rec.employeeName }}</div>
+                <div class="smaller text-muted">{{ rec.employeeCode }}</div>
+              </td>
+              <td>{{ rec.departmentName }}</td>
+              <td>{{ rec.attendanceDate | date:'mediumDate' }}</td>
+              <td>{{ rec.clockInTime ? (rec.clockInTime | date:'shortTime') : '--' }}</td>
+              <td>{{ rec.clockOutTime ? (rec.clockOutTime | date:'shortTime') : '--' }}</td>
+              <td>{{ rec.workingHours }} hrs</td>
+              <td>
+                <span class="badge" [ngClass]="{
+                  'bg-success': rec.status === 'Present',
+                  'bg-warning text-dark': rec.status === 'Late' || rec.status === 'HalfDay',
+                  'bg-danger': rec.status === 'Absent',
+                  'bg-info': rec.status === 'OnLeave'
+                }">{{ rec.status }}</span>
+              </td>
+              <td class="small text-muted">{{ rec.remarks || '--' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 3: Correction Requests -->
+  <div *ngIf="activeTab === 'corrections'" class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+      <h5 class="fw-bold mb-3">Correction Requests Queue</h5>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Employee</th>
+              <th>Target Date</th>
+              <th>Proposed Timings</th>
+              <th>Reason</th>
+              <th>Status</th>
+              <th>Reviewer</th>
+              <th *ngIf="canManageAttendance()">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of correctionsList">
+              <td>
+                <div class="fw-bold">{{ c.employeeName }}</div>
+                <div class="smaller text-muted">{{ c.employeeCode }}</div>
+              </td>
+              <td>{{ c.attendanceDate | date:'mediumDate' }}</td>
+              <td>
+                In: {{ c.proposedClockIn ? (c.proposedClockIn | date:'shortTime') : '--' }} |
+                Out: {{ c.proposedClockOut ? (c.proposedClockOut | date:'shortTime') : '--' }}
+              </td>
+              <td>{{ c.reason }}</td>
+              <td>
+                <span class="badge" [ngClass]="{
+                  'bg-warning text-dark': c.status === 'Pending',
+                  'bg-success': c.status === 'Approved',
+                  'bg-danger': c.status === 'Rejected'
+                }">{{ c.status }}</span>
+              </td>
+              <td>{{ c.reviewedByName || 'Pending' }}</td>
+              <td *ngIf="canManageAttendance()">
+                <div class="btn-group btn-group-sm" *ngIf="c.status === 'Pending'">
+                  <button class="btn btn-outline-success" (click)="reviewCorrection(c.id, true)">Approve</button>
+                  <button class="btn btn-outline-danger" (click)="reviewCorrection(c.id, false)">Reject</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Request Correction -->
+<div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)" *ngIf="showCorrectionModal">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold">Request Attendance Correction</h5>
+        <button type="button" class="btn-close" (click)="showCorrectionModal = false"></button>
+      </div>
+      <form [formGroup]="correctionForm" (ngSubmit)="submitCorrection()">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Attendance Date *</label>
+            <input type="date" class="form-control" formControlName="attendanceDate">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Corrected Clock In</label>
+              <input type="datetime-local" class="form-control" formControlName="proposedClockIn">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold">Corrected Clock Out</label>
+              <input type="datetime-local" class="form-control" formControlName="proposedClockOut">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Reason for Correction *</label>
+            <textarea class="form-control" rows="3" formControlName="reason" placeholder="e.g. Forgot to clock out before power cut"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0">
+          <button type="button" class="btn btn-secondary" (click)="showCorrectionModal = false">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="correctionForm.invalid">Submit Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

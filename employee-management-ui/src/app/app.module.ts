@@ -18,6 +18,8 @@ import { EmployeeFormComponent } from './components/employees/employee-form/empl
 import { EmployeeProfileComponent } from './components/employees/employee-profile/employee-profile.component';
 import { DepartmentListComponent } from './components/departments/department-list.component';
 import { DesignationListComponent } from './components/designations/designation-list.component';
+import { AttendanceComponent } from './components/attendance/attendance.component';
+import { LeavesComponent } from './components/leaves/leaves.component';
 import { SettingsComponent } from './components/settings/settings.component';
 
 @NgModule({
@@ -31,6 +33,8 @@ import { SettingsComponent } from './components/settings/settings.component';
     EmployeeProfileComponent,
     DepartmentListComponent,
     DesignationListComponent,
+    AttendanceComponent,
+    LeavesComponent,
     SettingsComponent
   ],
   imports: [

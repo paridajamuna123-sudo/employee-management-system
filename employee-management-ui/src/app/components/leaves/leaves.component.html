@@ -1,0 +1,217 @@
+<div class="container-fluid p-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold text-dark mb-1">
+        <i class="bi bi-calendar-event text-primary me-2"></i>Leave Management
+      </h3>
+      <p class="text-secondary small mb-0">Apply for leaves, track annual quotas, and manage team approvals.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-success" (click)="exportExcel()" *ngIf="canManageLeaves()">
+        <i class="bi bi-file-earmark-excel me-1"></i> Export Leaves
+      </button>
+      <button class="btn btn-primary" (click)="activeTab = 'apply'">
+        <i class="bi bi-plus-circle me-1"></i> Apply Leave
+      </button>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="alert alert-success alert-dismissible fade show" *ngIf="successMessage">
+    <i class="bi bi-check-circle-fill me-2"></i>{{ successMessage }}
+    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+  </div>
+  <div class="alert alert-danger alert-dismissible fade show" *ngIf="errorMessage">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ errorMessage }}
+    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+  </div>
+
+  <!-- Leave Balance Cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-3" *ngFor="let b of myBalances">
+      <div class="card border-0 shadow-sm rounded-4 balance-card h-100">
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="badge bg-primary-subtle text-primary fw-bold">{{ b.leaveTypeCode }}</span>
+            <span class="badge bg-light text-muted">{{ b.year }}</span>
+          </div>
+          <h6 class="fw-bold text-dark mb-1 text-truncate">{{ b.leaveTypeName }}</h6>
+          <div class="d-flex align-items-baseline gap-2 mt-2">
+            <span class="display-6 fw-bold text-primary">{{ b.remainingDays }}</span>
+            <span class="text-muted small">/ {{ b.totalDays }} days left</span>
+          </div>
+          <div class="progress mt-2" style="height: 6px;">
+            <div class="progress-bar bg-primary"
+                 [style.width.%]="b.totalDays > 0 ? ((b.usedDays / b.totalDays) * 100) : 0"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <ul class="nav nav-pills mb-4">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'my-leaves'" (click)="activeTab = 'my-leaves'">
+        <i class="bi bi-clock-history me-1"></i> My Applications
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'apply'" (click)="activeTab = 'apply'">
+        <i class="bi bi-pencil-square me-1"></i> Apply for Leave
+      </a>
+    </li>
+    <li class="nav-item" *ngIf="canManageLeaves()">
+      <a class="nav-link" [class.active]="activeTab === 'approvals'" (click)="activeTab = 'approvals'; loadAllRequests()">
+        <i class="bi bi-inbox me-1"></i> Team Approvals Queue
+      </a>
+    </li>
+  </ul>
+
+  <!-- Tab 1: My Applications -->
+  <div *ngIf="activeTab === 'my-leaves'" class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+      <h5 class="fw-bold mb-3">My Leave Requests</h5>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Type</th>
+              <th>Date Range</th>
+              <th>Days</th>
+              <th>Reason</th>
+              <th>Status</th>
+              <th>Applied On</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of myRequests">
+              <td>
+                <span class="badge bg-secondary-subtle text-secondary me-1">{{ r.leaveTypeCode }}</span>
+                {{ r.leaveTypeName }}
+              </td>
+              <td class="fw-semibold">
+                {{ r.startDate | date:'mediumDate' }}
+                <span *ngIf="r.startDate !== r.endDate"> &rarr; {{ r.endDate | date:'mediumDate' }}</span>
+                <span class="badge bg-info-subtle text-info ms-1" *ngIf="r.isHalfDay">Half Day</span>
+              </td>
+              <td>{{ r.totalDays }} day(s)</td>
+              <td class="text-truncate" style="max-width: 250px;">{{ r.reason }}</td>
+              <td>
+                <span class="badge" [ngClass]="{
+                  'bg-warning text-dark': r.status === 'Pending',
+                  'bg-success': r.status === 'Approved',
+                  'bg-danger': r.status === 'Rejected',
+                  'bg-secondary': r.status === 'Cancelled'
+                }">{{ r.status }}</span>
+              </td>
+              <td class="small text-muted">{{ r.createdAt | date:'short' }}</td>
+              <td>
+                <button class="btn btn-sm btn-outline-danger"
+                        *ngIf="r.status === 'Pending' || r.status === 'Approved'"
+                        (click)="cancelRequest(r.id)">Cancel</button>
+              </td>
+            </tr>
+            <tr *ngIf="myRequests.length === 0">
+              <td colspan="7" class="text-center py-4 text-muted">No leave applications submitted yet.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Apply for Leave Form -->
+  <div *ngIf="activeTab === 'apply'" class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+      <h5 class="fw-bold mb-3">Submit Leave Application</h5>
+      <form [formGroup]="applyForm" (ngSubmit)="applyLeave()">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Leave Type *</label>
+            <select class="form-select" formControlName="leaveTypeId">
+              <option *ngFor="let t of leaveTypes" [value]="t.id">{{ t.name }} ({{ t.code }})</option>
+            </select>
+          </div>
+          <div class="col-md-6 d-flex align-items-center pt-4">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="halfDaySwitch" formControlName="isHalfDay">
+              <label class="form-check-label fw-semibold" for="halfDaySwitch">Half Day Leave (0.5 day)</label>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Start Date *</label>
+            <input type="date" class="form-control" formControlName="startDate">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">End Date *</label>
+            <input type="date" class="form-control" formControlName="endDate">
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Reason for Leave *</label>
+            <textarea class="form-control" rows="4" formControlName="reason" placeholder="Explain the context or reason for this leave application..."></textarea>
+          </div>
+          <div class="col-12 text-end">
+            <button type="button" class="btn btn-secondary me-2" (click)="activeTab = 'my-leaves'">Cancel</button>
+            <button type="submit" class="btn btn-primary px-4" [disabled]="applyForm.invalid || isSaving">
+              <span class="spinner-border spinner-border-sm me-1" *ngIf="isSaving"></span>
+              Submit Application
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tab 3: Team Approvals (Managers / HR / Admin) -->
+  <div *ngIf="activeTab === 'approvals'" class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+      <h5 class="fw-bold mb-3">Leave Approval Inbox</h5>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Leave Type</th>
+              <th>Dates</th>
+              <th>Duration</th>
+              <th>Reason</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of allRequests">
+              <td>
+                <div class="fw-bold">{{ r.employeeName }}</div>
+                <div class="smaller text-muted">{{ r.employeeCode }}</div>
+              </td>
+              <td>{{ r.departmentName }}</td>
+              <td><span class="badge bg-secondary-subtle text-secondary">{{ r.leaveTypeCode }}</span> {{ r.leaveTypeName }}</td>
+              <td>{{ r.startDate | date:'mediumDate' }} &rarr; {{ r.endDate | date:'mediumDate' }}</td>
+              <td>{{ r.totalDays }} day(s)</td>
+              <td class="text-truncate" style="max-width: 200px;">{{ r.reason }}</td>
+              <td>
+                <span class="badge" [ngClass]="{
+                  'bg-warning text-dark': r.status === 'Pending',
+                  'bg-success': r.status === 'Approved',
+                  'bg-danger': r.status === 'Rejected',
+                  'bg-secondary': r.status === 'Cancelled'
+                }">{{ r.status }}</span>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm" *ngIf="r.status === 'Pending'">
+                  <button class="btn btn-outline-success" (click)="reviewRequest(r.id, 'Approved')">Approve</button>
+                  <button class="btn btn-outline-danger" (click)="reviewRequest(r.id, 'Rejected')">Reject</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

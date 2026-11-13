@@ -49,24 +49,22 @@
           </a>
         </li>
 
-        <!-- Future Modules Clearly Indicated as Disabled -->
-
-        <li class="nav-item disabled-nav" title="Available in Sprint 3">
-          <a class="nav-link disabled-link">
+        <!-- Sprint 3: Attendance & Leave Management -->
+        <li class="nav-item">
+          <a routerLink="/attendance" routerLinkActive="active" class="nav-link" (click)="closeMobileSidebar()">
             <i class="bi bi-clock-history"></i>
             <span class="link-text">Attendance</span>
-            <span class="badge bg-secondary-subtle text-secondary ms-auto badge-sprint">Sprint 3</span>
           </a>
         </li>
 
-        <li class="nav-item disabled-nav" title="Available in Sprint 3">
-          <a class="nav-link disabled-link">
+        <li class="nav-item">
+          <a routerLink="/leaves" routerLinkActive="active" class="nav-link" (click)="closeMobileSidebar()">
             <i class="bi bi-calendar-event"></i>
             <span class="link-text">Leave Mgmt</span>
-            <span class="badge bg-secondary-subtle text-secondary ms-auto badge-sprint">Sprint 3</span>
           </a>
         </li>
 
+        <!-- Future Modules Clearly Indicated as Disabled -->
         <li class="nav-item disabled-nav" title="Available in Sprint 4">
           <a class="nav-link disabled-link">
             <i class="bi bi-cash-stack"></i>
